@@ -1,0 +1,335 @@
+/**
+ * CIS 120 Game HW
+ * (c) University of Pennsylvania
+ * @version 2.0, Mar 2013
+ */
+
+// imports necessary libraries for Java swing
+import java.awt.*;
+import java.awt.event.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Scanner;
+import java.util.TreeMap;
+import java.io.Writer;
+
+import javax.swing.*;
+
+
+/**
+ * Game Main class that specifies the frame and widgets of the GUI
+ */
+public class Game implements Runnable {
+	public void run() {
+		// NOTE : recall that the 'final' keyword notes immutability
+		// even for local variables.
+
+		// Top-level frame in which game components live
+		// Be sure to change "TOP LEVEL FRAME" to the name of your game
+		final JFrame frame = new JFrame("Battleship");
+		frame.setLocation(300, 300);
+
+		// Status panel
+		final JPanel status_panel = new JPanel();
+		frame.add(status_panel, BorderLayout.SOUTH);
+		final JLabel status = new JLabel("Running...");
+		status_panel.add(status);
+		
+		String s = (String)JOptionPane.showInputDialog(
+                frame,
+                "Welcome to Battleship! \n Enter a username:",
+                "Battleship",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                null,
+                "User1");
+       Board b = new Board(s);
+       Board opp = new Board("computer");
+
+
+		// Main playing area
+		final GameCourt court = new GameCourt(status, b, opp);
+		frame.add(court, BorderLayout.CENTER);
+
+		// Reset button
+		final JPanel control_panel = new JPanel();
+		frame.add(control_panel, BorderLayout.NORTH);
+
+		// Note here that when we add an action listener to the reset
+		// button, we define it as an anonymous inner class that is
+		// an instance of ActionListener with its actionPerformed()
+		// method overridden. When the button is pressed,
+		// actionPerformed() will be called.
+		final JButton reset = new JButton("Reset");
+		reset.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				court.reset();
+				run();
+			}
+		});
+		control_panel.add(reset);
+
+		// Put the frame on the screen
+		frame.pack();
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setVisible(true);
+
+		// Start game
+		court.reset();
+		
+		
+		JOptionPane.showMessageDialog(frame,
+                "Welcome to Battleship! Here's how to play: \n"
+                + " You and your enemy each have 10 battleships, \n"
+                + " on a 10x10 grid. You will take turns guessing \n"
+                + " the positions of each other's battleships, and \n"
+                + " the first player to find and destroy all of the \n"
+                + " other player's battleships wins. To start, you \n"
+                + " will be prompted to select coordinates for each \n"
+                + " of your 10 ships. The grid coordinates work as \n"
+                + " follows: (column, row) such that (1,1) is the top \n"
+                + " left corner, (10,1) is the top right, (1,10) is at \n"
+                + " the bottom left, and  (10,10) is at the bottom right. \n"
+                + "Locations you have guessed incorrectly will be colored red,"
+                + "\n and locations you've guessed correctly will become blue. \n"
+                + " When you're confident you know how to play, go ahead \n"
+                + " and click OK below to begin playing. Good luck!",
+                "Battleship: How to Play",
+                JOptionPane.PLAIN_MESSAGE); 
+		
+		for(int i = 0; i < 10; i++) {
+		    for(int j = 0; j < 10; j++) {
+		        if(i==j) {
+		            b.placeShip(i, j);
+		        }
+		    }
+		    court.repaint();
+		}
+		
+		/*try {
+            while(b.numShips()<10) {
+		    int[] coords = askCoords(frame, "your");
+		    int x = coords[0];
+		    int y = coords[1];
+		    if(b.isShip(x-1, y-1)) {
+		        JOptionPane.showMessageDialog(frame,
+		                "There is already a ship here.",
+		                "Battleship",
+		                JOptionPane.PLAIN_MESSAGE);
+		    } else {
+		        b.placeShip(x-1, y-1);
+		    }
+		    court.repaint();
+		}
+        } catch (NullPointerException e) {
+            System.exit(0);
+        }*/
+		
+		
+		
+		// generates enemy's battleships
+		status.setText("The enemy is placing their ships...");
+        /*Board opp = new Board("computer");*/
+        Random rn = new Random();
+        while(opp.numShips() < 10){
+            int x = rn.nextInt(10);
+            int y = rn.nextInt(10);
+            opp.placeShip(x, y);
+        }
+        court.repaint();
+		
+		JOptionPane.showMessageDialog(frame,
+		        "The battle begins!",
+		        "Battleship",
+		        JOptionPane.PLAIN_MESSAGE);  
+		status.setText(update(b, opp));
+		
+		try {
+		    play(frame, court, status, b, opp);
+		} catch (NullPointerException e) {
+		    System.exit(0);
+		}
+		
+	}
+	
+	public int[] askCoords(JFrame f, String s) {
+	    Object[] possibilities = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        int x = (int) JOptionPane.showInputDialog(
+                f,
+                "Choose an x-coordinate for " + s + " battleship",
+                "x-coordinate",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                possibilities,
+                1);
+        int y = (int) JOptionPane.showInputDialog(
+                f,
+                "Choose a y-coordinate for " + s + " battleship",
+                "y-coordinate",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                possibilities,
+                1);
+        return new int[]{x,y};
+	}
+	
+	public void play(JFrame f, GameCourt c, JLabel s, Board user, Board comp) {
+	    while(user.numShips()!=0 && comp.numShips() !=0) {
+	        int[] coords = askCoords(f, "the enemy's");
+	        int x = coords[0];
+	        int y = coords[1]; 
+	        user.addGuess(x-1, y-1);
+	        if(comp.isShip(x-1, y-1)) {
+	            comp.removeShip(x-1, y-1);
+	            user.blownUp(x-1, y-1);
+	            c.repaint();
+	            JOptionPane.showMessageDialog(f,
+	                    "You blew up a ship!",
+	                    "Battleship",
+	                    JOptionPane.PLAIN_MESSAGE);
+                s.setText(update(user, comp));
+	        } else {
+	            c.repaint();
+	            JOptionPane.showMessageDialog(f,
+	                    "Sorry, there's no ship there.",
+	                    "Battleship",
+	                    JOptionPane.PLAIN_MESSAGE);
+	        }
+	        int[] oppMove = search(comp);
+	        int i = oppMove[0];
+	        int j = oppMove[1];
+	        comp.addGuess(i, j);
+	        if(user.isShip(i, j)) {
+	            user.removeShip(i, j);
+	            c.repaint();
+	            i++;
+	            j++;
+	            JOptionPane.showMessageDialog(f,
+                        "The enemy found your ship at (" + i +  ", " + j + ")!",
+                        "Battleship",
+                        JOptionPane.PLAIN_MESSAGE);
+	            s.setText(update(user, comp));
+	        } else {
+	            i++;
+	            j++;
+	            JOptionPane.showMessageDialog(f,
+                        "The enemy guessed (" + i +  ", " + j + ").",
+                        "Battleship",
+                        JOptionPane.PLAIN_MESSAGE);
+	        }
+
+	        	        
+	    }
+	    if(comp.numShips()==0) {
+	        JOptionPane.showMessageDialog(f,
+	                "You won! Press Reset to play again.",
+	                "Battleship",
+	                JOptionPane.PLAIN_MESSAGE);
+	        try {
+                JOptionPane.showMessageDialog(f,
+                        highScores(user.getPlayer(), user.numShips()*100, true),
+                        "Battleship",
+                        JOptionPane.PLAIN_MESSAGE);
+	        } catch (IOException e) {
+
+            }
+	    } else if(user.numShips()==0) {
+	        JOptionPane.showMessageDialog(f,
+	                "Sorry, you lost. Press Reset to try again!",
+	                "Battleship",
+	                JOptionPane.PLAIN_MESSAGE);
+	        try {
+                JOptionPane.showMessageDialog(f,
+                        highScores(user.getPlayer(), user.numShips()*100, false),
+                        "Battleship",
+                        JOptionPane.PLAIN_MESSAGE);
+            } catch (IOException e) {
+
+            }
+	    }
+	}
+	
+	public String update(Board user, Board comp) {
+	    return (user.getPlayer() + ": " + user.numShips()  + "\t Your score: " + user.numShips()*100
+	            + "\t \t Enemy: " + comp.numShips());
+	}
+	
+	public int[] search(Board opp) {
+	    LinkedList<int[]> moves = new LinkedList<int[]>();
+	    for(int i = 0; i < 10; i++) {
+	        for(int j = 0; j < 10; j++) {
+	            moves.add(new int[]{i,j});
+	        }
+	    }
+	    LinkedList<int[]> remove = new LinkedList<int[]>();
+	    for(int[] i : moves) {
+	        if(opp.isGuessed(i[0], i[1])) {
+	            remove.add(i);
+	        }
+	    }
+	    moves.removeAll(remove);
+	    Random rn = new Random();
+	    int index = rn.nextInt(moves.size()-1);
+	    int[] move = moves.get(index);
+	    return new int[]{move[0], move[1]};
+	}
+	
+	File scores = new File("highscores.txt");
+
+	public String highScores(String user, int score, boolean won) throws IOException {
+	    Map<Integer, String> ans = new TreeMap<Integer, String>();
+	    try {
+	        Scanner sc = new Scanner(scores);	    
+	        Writer out = new BufferedWriter(new FileWriter(scores, false));
+
+	        while(sc.hasNextLine()) {
+	            String name = sc.nextLine();
+	            int num = Integer.parseInt(sc.nextLine());
+	            ans.put(num, name);
+	        }
+	        
+	        if(won) {
+	           ans.put(score, user);
+	        }
+	        
+	        String str = "Leaderboard \n";
+
+	        
+	        for (Entry<Integer,String> entry : ans.entrySet()) {
+	            out.write(entry.getValue() + "\n" + entry.getKey());
+	            str = str + entry.getValue() + "  " + entry.getKey() + "\n";
+	        }
+	        
+	        sc.close();
+	        out.flush();
+	        out.close();
+	        
+	        return str;
+
+	        
+	    } catch (FileNotFoundException f) {
+	        FileWriter out = new FileWriter(scores);
+	        out.write(user + "\n" + score);
+	        out.flush();
+	        out.close();
+	        return user + "  " + score;
+	    }
+
+	}
+
+	/*
+	 * Main method run to start and run the game Initializes the GUI elements
+	 * specified in Game and runs it IMPORTANT: Do NOT delete! You MUST include
+	 * this in the final submission of your game.
+	 */
+	public static void main(String[] args) {
+		SwingUtilities.invokeLater(new Game());
+	}
+}
