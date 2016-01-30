@@ -1,0 +1,131 @@
+import java.awt.Color;
+import java.awt.Graphics;
+import java.util.LinkedList;
+
+public class Board {
+    
+    private boolean[][] board;
+    private String player;
+    private LinkedList<int[]> guessed;
+    private LinkedList<int[]> blownUp;
+
+    public Board(String player) {
+        this.player = player;
+        board = new boolean[10][10];
+        guessed = new LinkedList<int[]>();
+        blownUp = new LinkedList<int[]>();
+    }
+    
+    public void placeShip(int x, int y) {
+        try {
+            board[x][y] = true;
+        } catch (IndexOutOfBoundsException e) {
+            
+        }
+    }
+    
+    public String getPlayer() {
+        return player;
+    }
+    
+    public int numShips() {
+        int count = 0;
+        for(int i = 0; i < 10; i++) {
+            for(int j = 0; j < 10; j++) {
+                if(board[i][j] == true) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+    
+    public boolean isShip(int x, int y) {
+        try {
+            return board[x][y];
+        } catch (IndexOutOfBoundsException e) {
+            return false;
+        }
+    }
+    
+    public void removeShip(int x, int y) {
+        try {
+            board[x][y] = false;
+        } catch (IndexOutOfBoundsException e) {
+            
+        }
+    }
+    
+    public void addGuess(int x, int y) {
+        guessed.add(new int[]{x,y});
+    }
+    
+    public boolean isGuessed(int x, int y) {
+        for(int[] i : guessed) {
+            if(i[0] == x && i[1] == y) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public void blownUp(int x, int y) {
+        blownUp.add(new int[]{x,y});
+    }
+    
+    public void draw(Graphics g) {
+        g.setColor(Color.BLACK);
+        for(int i = 0; i <= 180; i = i+20) {
+            for(int j = 0; j <= 180; j = j+20) {
+                g.drawLine(i+20, j, i+20, j+20);
+                g.drawLine(i, j+20, i+20, j+20);
+            }
+        }
+    }
+    
+    public void drawOtherBoard(Graphics g) {
+        g.setColor(Color.BLACK);
+        g.drawLine(300, 0, 300, 200);
+        for(int i = 300; i <= 500; i = i+20) {
+            for(int j = 0; j <= 200; j = j+20) {
+                g.drawLine(i+20, j, i+20, j+20);
+                g.drawLine(i, j+20, i+20, j+20);
+            }
+        }
+    }
+    
+    public void repaint(Graphics g) {
+        g.setColor(Color.BLACK);
+        for(int i = 0; i < 10; i++) {
+            for(int j = 0; j < 10; j++) {
+                if(board[i][j] == true) {
+                    g.fillRect(i*20, j*20, 20, 20);
+                }
+            }
+        }
+        g.setColor(Color.RED);
+        for(int[] i : guessed) {
+            int x = i[0];
+            int y = i[1];
+            g.fillRect(300+x*20, y*20, 20, 20);
+        }
+        g.setColor(Color.BLUE);
+        for(int[] i : blownUp) {
+            int x = i[0];
+            int y = i[1];
+            g.fillRect(300+x*20, y*20, 20, 20);
+        }
+    }
+    
+    public void repaintOpp(Graphics g) {
+        g.setColor(Color.BLACK);
+        for(int i = 0; i < 10; i++) {
+            for(int j = 0; j < 10; j++) {
+                if(board[i][j] == true) {
+                    g.fillRect(300+i*20, j*20, 20, 20);
+                }
+            }
+        }
+    }
+    
+}
